@@ -32,7 +32,9 @@ import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import dev.patrickgold.florisboard.R
 import dev.patrickgold.florisboard.app.LocalNavController
@@ -154,6 +156,11 @@ fun HomeScreen() = FlorisScreen {
             icon = Icons.Outlined.Build,
             title = stringRes(R.string.settings__other__title),
             onClick = { navController.navigate(Routes.Settings.Other) },
+        )
+        Preference(
+            icon = ImageVector.vectorResource(id = R.drawable.ic_auto_awesome),
+            title = "AI Features",
+            onClick = { navController.navigate(Routes.Settings.Ai) },
         )
         Preference(
             icon = Icons.Outlined.Info,

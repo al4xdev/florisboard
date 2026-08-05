@@ -112,6 +112,8 @@ fun QuickAction.computeDisplayName(evaluator: ComputingEvaluator): String {
             else -> R.string.general__invalid_fatal
         })
         is QuickAction.InsertText -> data
+        is FixGrammar -> "Fix grammar"
+        is CustomAiPrompt -> "AI Prompt"
     }
 }
 
@@ -152,5 +154,7 @@ fun QuickAction.computeTooltip(evaluator: ComputingEvaluator): String {
             else -> R.string.general__invalid_fatal
         })
         is QuickAction.InsertText -> "Insert text '$data'"
+        is FixGrammar -> "Fix grammar (selection, or select-all if nothing selected)"
+        is CustomAiPrompt -> "Execute custom AI prompt"
     }
 }

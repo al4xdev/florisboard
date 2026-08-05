@@ -1,7 +1,60 @@
 <img align="left" width="80" height="80"
 src=".github/repo_icon.png" alt="App icon">
 
-# FlorisBoard [![Crowdin](https://badges.crowdin.net/florisboard/localized.svg)](https://crowdin.florisboard.org) [![Matrix badge](https://img.shields.io/badge/chat-%23florisboard%3amatrix.org-blue)](https://matrix.to/#/#florisboard:matrix.org) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md) [![FlorisBoard CI](https://github.com/florisboard/florisboard/actions/workflows/android.yml/badge.svg?event=push)](https://github.com/florisboard/florisboard/actions/workflows/android.yml)
+# FlorisBoard (AI Enhanced Fork) [![Crowdin](https://badges.crowdin.net/florisboard/localized.svg)](https://crowdin.florisboard.org) [![Matrix badge](https://img.shields.io/badge/chat-%23florisboard%3amatrix.org-blue)](https://matrix.to/#/#florisboard:matrix.org) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md) [![FlorisBoard CI](https://github.com/florisboard/florisboard/actions/workflows/android.yml/badge.svg?event=push)](https://github.com/florisboard/florisboard/actions/workflows/android.yml)
+
+> [!IMPORTANT]
+> **This is a custom fork of FlorisBoard enhanced with integrated AI features powered by OpenRouter!**
+> 
+> Key features introduced in this fork:
+> - 🤖 **AI Features Menu**: Configure OpenRouter API Key, Model, and Custom System Prompts.
+> - 🔤 **FixGrammar & ✨ AI Prompt Quick Actions**: Single-tap toolbar actions to fix grammar or run custom prompts directly in any app.
+> - 🌡️ **AI Intervention Slider**: Custom Compose slider with 5 discrete levels (Low, Med, High, XHigh, Max) and dynamic temperature colors (Green ➔ Blue ➔ Amber ➔ Orange ➔ Red).
+> - 🚀 **Smart Setup Redirection**: Automatically guides you to the setup screen if no API key is configured.
+> - 🐻 **Chewbacca Easter Egg**: Default custom prompt converts any text to authentic Wookiee roars!
+
+<p align="center">
+  <img src="docs/assets/demo_part1.gif" width="48%" alt="AI Settings & Temperature Slider" />
+  <img src="docs/assets/demo_part2.gif" width="48%" alt="AI Toolbar Quick Actions in Action" />
+</p>
+
+## 📊 AI Level Benchmark
+
+Benchmark executed using the exact payload as the FlorisBoard app (`reasoning: { effort: "none" }`). The keyboard's active language is automatically passed as a system prompt hint.
+
+> Model: `deepseek/deepseek-v4-flash` via OpenRouter · Temperature: 0 · Reasoning: `none` · Parallel latency: ~200ms/req
+
+<details open>
+<summary><b>🇺🇸 English Benchmark (100% Complete — 6/6 sentences)</b></summary>
+
+| Input | Low (Minimal) | Med (Standard) | High (Smooth) | XHigh (Expressive) | Max (Full Polish) |
+|---|---|---|---|---|---|
+| `the biuld is faling on the CI, i think its a depedency isue` | the build is failing on the CI, i think its a dependency issue | The build is failing on the CI, I think it's a dependency issue. | The build is failing on the CI, I think it's a dependency issue. | The build is failing on the CI; I think it's a dependency issue. | The build is failing on the CI. I think it's a dependency issue. |
+| `hey can u chekc why the apk isnt instaling on my devce? i tryed evrything` | hey can u check why the apk isnt installing on my device? i tried everything | Hey, can you check why the APK isn't installing on my device? I tried everything. | Hey can you check why the APK isn't installing on my device? I tried everything. | Hey, can you check why the APK isn't installing on my device? I tried everything. | Could you please check why the APK isn't installing on my device? I've tried everything. |
+| `im gona push the hotfx to main tonite, dont merge ur branch til i say so` | im gonna push the hotfix to main tonight, dont merge ur branch til i say so | I'm gonna push the hotfix to main tonight, don't merge your branch till I say so. | I'm gonna push the hotfix to main tonight, don't merge your branch till I say so. | I'm gonna push the hotfix to main tonight, don't merge your branch until I say so. | I'm going to push the hotfix to main tonight. Don't merge your branch until I say so. |
+| `so basiacly the problm is that the api retunrs null when the toke expires` | so basically the problem is that the api returns null when the token expires | So basically the problem is that the API returns null when the token expires. | So basically the problem is that the API returns null when the token expires. | So basically the problem is that the API returns null when the token expires. | The core issue is that the API returns null when the token expires. |
+| `yo dude the gradle cashe is corruptd again, we neeed to cleean and rebulid` | yo dude the gradle cache is corrupted again, we need to clean and rebuild | Yo dude, the Gradle cache is corrupted again, we need to clean and rebuild. | yo dude the gradle cache is corrupted again, we need to clean and rebuild | yo dude the gradle cache is corrupted again, we need to clean and rebuild | The Gradle cache is corrupted again. We need to clean and rebuild. |
+| `i dont undrstnd why the unit tets are faling, they workd fine yestrday` | I dont understand why the unit tests are failing, they worked fine yesterday. | I don't understand why the unit tests are failing, they worked fine yesterday. | I don't understand why the unit tests are failing, they worked fine yesterday. | I don't understand why the unit tests are failing, they worked fine yesterday. | I don't understand why the unit tests are failing—they were working fine yesterday. |
+
+</details>
+
+<details open>
+<summary><b>🇧🇷 Portuguese (PT-BR) Benchmark (100% Complete — 6/6 sentences)</b></summary>
+
+| Input | Low (Minimal) | Med (Standard) | High (Smooth) | XHigh (Expressive) | Max (Full Polish) |
+|---|---|---|---|---|---|
+| `uma duvida ,nao to vendo sugetaor de ptbr, tem que ligar aondme isso ?` | uma duvida, não to vendo sugestão de ptbr, tem que ligar onde isso? | Uma dúvida, não estou vendo sugestão de pt-BR, tem que ligar onde isso? | Uma dúvida, não tô vendo sugestão de pt-BR, tem que ligar onde isso? | Uma dúvida, não estou vendo sugestão de pt-BR, tem que ligar onde isso? | Uma dúvida: não estou vendo sugestão de pt-BR. Onde preciso ativar isso? |
+| `mano rodo o git push origin main e deu erro de rebase no branch stage` | mano rodo o git push origin main e deu erro de rebase no branch stage | mano, rodei o git push origin main e deu erro de rebase no branch stage. | mano, rodo o git push origin main e deu erro de rebase no branch stage | Mano, rodei o `git push origin main` e deu erro de rebase no branch stage. | Cara, executei o comando `git push origin main` e ocorreu um erro de rebase no branch `stage`. |
+| `ele num ta achando o file no path /tmp/florisboard-gradle-cache/caches` | ele não tá achando o file no path /tmp/florisboard-gradle-cache/caches | Ele não tá achando o file no path /tmp/florisboard-gradle-cache/caches. | ele não tá achando o file no path /tmp/florisboard-gradle-cache/caches | ele não está encontrando o arquivo no caminho /tmp/florisboard-gradle-cache/caches | Ele não está encontrando o arquivo no caminho /tmp/florisboard-gradle-cache/caches. |
+| `cara o app ta crashndo quand eu abro o teclad, acho q é por causa do gradle` | cara o app ta crashando quando eu abro o teclado, acho q é por causa do gradle | Cara, o app tá crashando quando eu abro o teclado, acho que é por causa do Gradle. | Cara, o app tá crashando quando eu abro o teclado, acho que é por causa do Gradle. | Cara, o app tá crashando quando eu abro o teclado, acho que é por causa do Gradle. | Cara, o aplicativo está apresentando crash ao abrir o teclado. Acredito que seja por causa do Gradle. |
+| `to tentand roda o docker build mas da erro de permisao no diretorio` | to tentando rodar o docker build mas da erro de permissão no diretório | to tentando rodar o docker build mas dá erro de permissão no diretório | to tentando rodar o docker build mas dá erro de permissão no diretório | Estou tentando rodar o docker build, mas está dando erro de permissão no diretório. | Estou tentando rodar o `docker build`, mas está dando erro de permissão no diretório. |
+| `alguem sab se tem como muda a cor do slider enquato arrasta ele ?` | alguem sabe se tem como mudar a cor do slider enquanto arrasta ele ? | Alguém sabe se tem como mudar a cor do slider enquanto arrasta ele? | Alguém sabe se tem como mudar a cor do slider enquanto arrasta ele? | Alguém sabe se tem como mudar a cor do slider enquanto arrasta ele? | Alguém sabe se tem como mudar a cor do slider enquanto arrasta ele? |
+
+</details>
+
+> [!NOTE]
+> All 60 test queries completed in **18.09 seconds total** using 15 parallel workers with `reasoning: { effort: "none" }`.
+> The keyboard automatically detects the active language and passes it as a hint to the AI model — **no manual language selection needed**.
 
 **FlorisBoard** is a free and open-source keyboard for Android 8.0+
 devices. It aims at being modern, user-friendly and customizable while

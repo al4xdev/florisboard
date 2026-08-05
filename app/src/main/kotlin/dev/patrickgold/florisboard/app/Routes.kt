@@ -53,6 +53,7 @@ import dev.patrickgold.florisboard.app.settings.HomeScreen
 import dev.patrickgold.florisboard.app.settings.about.AboutScreen
 import dev.patrickgold.florisboard.app.settings.about.ProjectLicenseScreen
 import dev.patrickgold.florisboard.app.settings.about.ThirdPartyLicensesScreen
+import dev.patrickgold.florisboard.app.settings.ai.AiScreen
 import dev.patrickgold.florisboard.app.settings.advanced.BackupScreen
 import dev.patrickgold.florisboard.app.settings.advanced.OtherScreen
 import dev.patrickgold.florisboard.app.settings.advanced.PhysicalKeyboardScreen
@@ -189,6 +190,14 @@ object Routes {
         object Restore
 
         @Serializable
+        @Deeplink("settings/ai")
+        object Ai
+
+        @Serializable
+        @Deeplink("settings/ai/help")
+        object AiHelp
+
+        @Serializable
         @Deeplink("settings/about")
         object About
 
@@ -318,6 +327,9 @@ object Routes {
             composableWithDeepLink(Settings.PhysicalKeyboard::class) { PhysicalKeyboardScreen() }
             composableWithDeepLink(Settings.Backup::class) { BackupScreen() }
             composableWithDeepLink(Settings.Restore::class) { RestoreScreen() }
+
+            composableWithDeepLink(Settings.Ai::class) { AiScreen() }
+            composableWithDeepLink(Settings.AiHelp::class) { dev.patrickgold.florisboard.app.settings.ai.AiHelpScreen() }
 
             composableWithDeepLink(Settings.About::class) { AboutScreen() }
             composableWithDeepLink(Settings.ProjectLicense::class) { ProjectLicenseScreen() }

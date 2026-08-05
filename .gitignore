@@ -5,6 +5,7 @@
 
 # dotenv
 .env
+test_results.json
 
 # Files for the ART/Dalvik VM
 *.dex
