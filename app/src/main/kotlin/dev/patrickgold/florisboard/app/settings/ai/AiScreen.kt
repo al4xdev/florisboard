@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -53,11 +54,13 @@ fun AiScreen() = FlorisScreen {
 
         val apiKey by prefs.ai.apiKey.collectAsState()
         val openRouterModel by prefs.ai.openRouterModel.collectAsState()
+        val openRouterProvider by prefs.ai.openRouterProvider.collectAsState()
         val customPrompt by prefs.ai.customPrompt.collectAsState()
         val aiLevel by prefs.ai.aiLevel.collectAsState()
 
         var showApiKeyDialog by remember { mutableStateOf(false) }
         var showModelDialog by remember { mutableStateOf(false) }
+        var showProviderDialog by remember { mutableStateOf(false) }
         var showPromptDialog by remember { mutableStateOf(false) }
 
         PreferenceGroup(title = "OpenRouter Integration") {
@@ -77,6 +80,13 @@ fun AiScreen() = FlorisScreen {
                 title = "OpenRouter Model",
                 summary = openRouterModel.ifBlank { "No model configured" },
                 onClick = { showModelDialog = true },
+            )
+
+            Preference(
+                icon = Icons.Default.Storage,
+                title = "OpenRouter Provider",
+                summary = openRouterProvider.ifBlank { "Automatic routing" },
+                onClick = { showProviderDialog = true },
             )
 
             AiLevelSliderPreference(
@@ -144,11 +154,46 @@ fun AiScreen() = FlorisScreen {
                 onDismiss = { showModelDialog = false },
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("OpenRouter model tag (e.g. ~deepseek/deepseek-v4-flash-latest, anthropic/claude-3.5-sonnet):")
+                    Text("OpenRouter model tag (e.g. deepseek/deepseek-v4-flash-0731, anthropic/claude-3.5-sonnet):")
                     Spacer(modifier = Modifier.height(8.dp))
                     JetPrefTextField(
                         value = tempModel,
                         onValueChange = { tempModel = it },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
+
+        if (showProviderDialog) {
+            var tempProvider by remember { mutableStateOf(openRouterProvider) }
+            JetPrefAlertDialog(
+                title = "OpenRouter Provider",
+                confirmLabel = "Save",
+                dismissLabel = "Cancel",
+                neutralLabel = "Automatic",
+                onNeutral = {
+                    scope.launch {
+                        prefs.ai.openRouterProvider.set("")
+                    }
+                    showProviderDialog = false
+                },
+                onConfirm = {
+                    scope.launch {
+                        prefs.ai.openRouterProvider.set(tempProvider.trim())
+                    }
+                    showProviderDialog = false
+                },
+                onDismiss = { showProviderDialog = false },
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Provider slug (e.g. baseten/fp8, deepseek, deepinfra). The request will use only this provider, with no fallback.")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Grammar Fix uses forced tool calling. The selected model and provider must support tools and tool_choice. BaseTen FP8 is the tested default.")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    JetPrefTextField(
+                        value = tempProvider,
+                        onValueChange = { tempProvider = it },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }

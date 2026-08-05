@@ -83,7 +83,11 @@ abstract class FlorisPreferenceModel : PreferenceModel() {
         )
         val openRouterModel = string(
             key = "ai__open_router_model",
-            default = "~deepseek/deepseek-v4-flash-latest",
+            default = "deepseek/deepseek-v4-flash-0731",
+        )
+        val openRouterProvider = string(
+            key = "ai__open_router_provider",
+            default = "baseten/fp8",
         )
         val customPrompt = string(
             key = "ai__custom_prompt",

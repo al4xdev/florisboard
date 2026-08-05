@@ -86,7 +86,7 @@ fun AiHelpScreen() = FlorisScreen {
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Select your preferred model tag (e.g. ~deepseek/deepseek-v4-flash-latest) and adjust the AI Intervention slider from Low to Max.",
+                    text = "Select your preferred model tag (e.g. deepseek/deepseek-v4-flash-0731) and adjust the AI Intervention slider from Low to Max.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
 
