@@ -75,6 +75,26 @@ abstract class FlorisPreferenceModel : PreferenceModel() {
         const val NAME = "florisboard-app-prefs"
     }
 
+    val ai = Ai()
+    inner class Ai {
+        val apiKey = string(
+            key = "ai__api_key",
+            default = "",
+        )
+        val openRouterModel = string(
+            key = "ai__open_router_model",
+            default = "~deepseek/deepseek-v4-flash-latest",
+        )
+        val customPrompt = string(
+            key = "ai__custom_prompt",
+            default = "You are Chewbacca the Wookiee. Translate all text into Shyriiwook (Wookiee roars like RAWRGWAWWGR, WAAAAHH, ARRRRRRRRRRR, GRRRRR, RWWGG). Keep technical terms intact if any. Reply ONLY with the Wookiee translation.",
+        )
+        val aiLevel = enum(
+            key = "ai__level",
+            default = dev.patrickgold.florisboard.app.settings.ai.AiLevel.MED,
+        )
+    }
+
     val clipboard = Clipboard()
     inner class Clipboard {
         val useInternalClipboard = boolean(

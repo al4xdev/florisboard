@@ -1,7 +1,22 @@
 <img align="left" width="80" height="80"
 src=".github/repo_icon.png" alt="App icon">
 
-# FlorisBoard [![Crowdin](https://badges.crowdin.net/florisboard/localized.svg)](https://crowdin.florisboard.org) [![Matrix badge](https://img.shields.io/badge/chat-%23florisboard%3amatrix.org-blue)](https://matrix.to/#/#florisboard:matrix.org) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md) [![FlorisBoard CI](https://github.com/florisboard/florisboard/actions/workflows/android.yml/badge.svg?event=push)](https://github.com/florisboard/florisboard/actions/workflows/android.yml)
+# FlorisBoard (AI Enhanced Fork) [![Crowdin](https://badges.crowdin.net/florisboard/localized.svg)](https://crowdin.florisboard.org) [![Matrix badge](https://img.shields.io/badge/chat-%23florisboard%3amatrix.org-blue)](https://matrix.to/#/#florisboard:matrix.org) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md) [![FlorisBoard CI](https://github.com/florisboard/florisboard/actions/workflows/android.yml/badge.svg?event=push)](https://github.com/florisboard/florisboard/actions/workflows/android.yml)
+
+> [!IMPORTANT]
+> **This is a custom fork of FlorisBoard enhanced with integrated AI features powered by OpenRouter!**
+> 
+> Key features introduced in this fork:
+> - 🤖 **AI Features Menu**: Configure OpenRouter API Key, Model, and Custom System Prompts.
+> - 🔤 **FixGrammar & ✨ AI Prompt Quick Actions**: Single-tap toolbar actions to fix grammar or run custom prompts directly in any app.
+> - 🌡️ **AI Intervention Slider**: Custom Compose slider with 5 discrete levels (Low, Med, High, XHigh, Max) and dynamic temperature colors (Green ➔ Blue ➔ Amber ➔ Orange ➔ Red).
+> - 🚀 **Smart Setup Redirection**: Automatically guides you to the setup screen if no API key is configured.
+> - 🐻 **Chewbacca Easter Egg**: Default custom prompt converts any text to authentic Wookiee roars!
+
+<p align="center">
+  <img src="docs/assets/demo_part1.gif" width="48%" alt="AI Settings & Temperature Slider" />
+  <img src="docs/assets/demo_part2.gif" width="48%" alt="AI Toolbar Quick Actions in Action" />
+</p>
 
 **FlorisBoard** is a free and open-source keyboard for Android 8.0+
 devices. It aims at being modern, user-friendly and customizable while
