@@ -2,13 +2,18 @@ package dev.patrickgold.florisboard.ime.smartbar.quickaction
 
 import android.content.Context
 import android.util.Log
+import android.view.inputmethod.InputConnection
 import android.widget.Toast
 import dev.patrickgold.florisboard.FlorisImeService
 import dev.patrickgold.florisboard.app.FlorisPreferenceStore
+import dev.patrickgold.florisboard.editorInstance
+import dev.patrickgold.florisboard.ime.editor.FlorisEditorInfo
 import dev.patrickgold.florisboard.subtypeManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
@@ -27,16 +32,53 @@ import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
 import java.net.URL
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 private val aiScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 private var lastAiToastReference = WeakReference<Toast>(null)
 private const val OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
+private class AiOperation(
+    val inputConnection: InputConnection,
+    val editorInfo: FlorisEditorInfo,
+    val originalText: String,
+) {
+    private val canceled = AtomicBoolean(false)
+    private val finished = AtomicBoolean(false)
+    private val activeConnection = AtomicReference<HttpURLConnection?>(null)
+
+    val isCanceled: Boolean
+        get() = canceled.get()
+
+    val isFinished: Boolean
+        get() = finished.get()
+
+    fun attachConnection(connection: HttpURLConnection) {
+        activeConnection.set(connection)
+        if (isCanceled) connection.disconnect()
+    }
+
+    fun detachConnection(connection: HttpURLConnection) {
+        activeConnection.compareAndSet(connection, null)
+    }
+
+    fun cancel(): Boolean {
+        if (!canceled.compareAndSet(false, true)) return false
+        activeConnection.getAndSet(null)?.disconnect()
+        return true
+    }
+
+    fun finish() {
+        finished.set(true)
+    }
+}
+
 @Serializable
 @SerialName("fix_grammar")
 object FixGrammar : QuickAction() {
     override fun onPointerUp(context: Context) {
-        if (AiActionState.isFixGrammarRunning) return
+        if (AiActionState.runningAction != null) return
         val ic = FlorisImeService.currentInputConnection() ?: return
         var original = ic.getSelectedText(0)?.toString()
         if (original.isNullOrEmpty()) {
@@ -60,23 +102,37 @@ object FixGrammar : QuickAction() {
         } catch (_: Exception) { null }
         val systemPrompt = prefs.ai.aiLevel.get().getSystemPrompt(languageTag)
         val textToProcess = original
+        val editorInstance by context.editorInstance()
+        val operation = AiOperation(ic, editorInstance.activeInfo, textToProcess)
 
+        AiActionState.runningAction = RunningAiAction.FIX_GRAMMAR
         aiScope.launch {
-            AiActionState.isFixGrammarRunning = true
+            val monitorJob = monitorAiTarget(context, operation)
+            var completed = false
             try {
-                processAndCommitText(
+                completed = processAndCommitText(
                     textToProcess,
                     systemPrompt,
                     apiKey,
                     model,
                     provider,
+                    context,
+                    operation,
                     useStructuredGrammarOutput = true,
                 )
             } catch (e: Exception) {
-                Log.w("FixGrammarAction", "request failed", e)
-                showAiRequestError(context, e)
+                if (!operation.isCanceled) {
+                    Log.w("FixGrammarAction", "request failed", e)
+                    showAiRequestError(context, e)
+                }
             } finally {
-                AiActionState.isFixGrammarRunning = false
+                monitorJob.cancel()
+                withContext(Dispatchers.Main.immediate) {
+                    if (AiActionState.runningAction == RunningAiAction.FIX_GRAMMAR) {
+                        AiActionState.runningAction = null
+                        if (completed) AiActionState.complete(RunningAiAction.FIX_GRAMMAR)
+                    }
+                }
             }
         }
     }
@@ -86,7 +142,7 @@ object FixGrammar : QuickAction() {
 @SerialName("custom_ai_prompt")
 object CustomAiPrompt : QuickAction() {
     override fun onPointerUp(context: Context) {
-        if (AiActionState.isCustomPromptRunning) return
+        if (AiActionState.runningAction != null) return
         val ic = FlorisImeService.currentInputConnection() ?: return
         var original = ic.getSelectedText(0)?.toString()
         if (original.isNullOrEmpty()) {
@@ -138,16 +194,36 @@ object CustomAiPrompt : QuickAction() {
             """.trimIndent()
         }
         val textToProcess = original
+        val editorInstance by context.editorInstance()
+        val operation = AiOperation(ic, editorInstance.activeInfo, textToProcess)
 
+        AiActionState.runningAction = RunningAiAction.CUSTOM_PROMPT
         aiScope.launch {
-            AiActionState.isCustomPromptRunning = true
+            val monitorJob = monitorAiTarget(context, operation)
+            var completed = false
             try {
-                processAndCommitText(textToProcess, systemPrompt, apiKey, model, provider)
+                completed = processAndCommitText(
+                    textToProcess,
+                    systemPrompt,
+                    apiKey,
+                    model,
+                    provider,
+                    context,
+                    operation,
+                )
             } catch (e: Exception) {
-                Log.w("CustomAiPromptAction", "request failed", e)
-                showAiRequestError(context, e)
+                if (!operation.isCanceled) {
+                    Log.w("CustomAiPromptAction", "request failed", e)
+                    showAiRequestError(context, e)
+                }
             } finally {
-                AiActionState.isCustomPromptRunning = false
+                monitorJob.cancel()
+                withContext(Dispatchers.Main.immediate) {
+                    if (AiActionState.runningAction == RunningAiAction.CUSTOM_PROMPT) {
+                        AiActionState.runningAction = null
+                        if (completed) AiActionState.complete(RunningAiAction.CUSTOM_PROMPT)
+                    }
+                }
             }
         }
     }
@@ -159,8 +235,10 @@ private suspend fun processAndCommitText(
     apiKey: String,
     model: String,
     provider: String,
+    context: Context,
+    operation: AiOperation,
     useStructuredGrammarOutput: Boolean = false,
-) {
+): Boolean {
     val originalTrimmed = textToProcess.trimEnd()
     val hadPeriodAtEnd = originalTrimmed.endsWith(".")
 
@@ -170,6 +248,7 @@ private suspend fun processAndCommitText(
         apiKey,
         model,
         provider,
+        operation,
         useStructuredGrammarOutput,
     )
     var finalText = rawResult.trimEnd()
@@ -183,12 +262,16 @@ private suspend fun processAndCommitText(
         finalText = finalText.trimEnd('.').trimEnd()
     }
 
-    withContext(Dispatchers.Main) {
-        val ic2 = FlorisImeService.currentInputConnection() ?: return@withContext
-        ic2.beginBatchEdit()
-        ic2.commitText(finalText, 1)
-        ic2.endBatchEdit()
+    val committed = withContext(Dispatchers.Main.immediate) {
+        if (!isAiTargetValidOnMain(context, operation)) return@withContext false
+        operation.finish()
+        operation.inputConnection.beginBatchEdit()
+        operation.inputConnection.commitText(finalText, 1)
+        operation.inputConnection.endBatchEdit()
+        true
     }
+    if (!committed) cancelAiOperation(context, operation)
+    return committed
 }
 
 private fun executeAiCompletion(
@@ -197,6 +280,7 @@ private fun executeAiCompletion(
     apiKey: String,
     model: String,
     provider: String,
+    operation: AiOperation,
     useStructuredGrammarOutput: Boolean,
 ): String {
     val url = URL(OPENROUTER_URL)
@@ -207,6 +291,12 @@ private fun executeAiCompletion(
     conn.doOutput = true
     conn.connectTimeout = 8000
     conn.readTimeout = 20000
+    operation.attachConnection(conn)
+    if (operation.isCanceled) {
+        operation.detachConnection(conn)
+        conn.disconnect()
+        throw AiRequestException()
+    }
 
     val body = buildJsonObject {
         put("model", model)
@@ -314,8 +404,36 @@ private fun executeAiCompletion(
                 ?: throw AiRequestException()
         }
     } finally {
+        operation.detachConnection(conn)
         conn.disconnect()
     }
+}
+
+private fun monitorAiTarget(context: Context, operation: AiOperation) = aiScope.launch {
+    val editorInstance by context.editorInstance()
+    combine(editorInstance.activeInfoFlow, editorInstance.activeContentFlow) { _, _ -> Unit }
+        .first { operation.isFinished || !isAiTargetValid(context, operation) }
+    if (!operation.isFinished) cancelAiOperation(context, operation)
+}
+
+private suspend fun isAiTargetValid(context: Context, operation: AiOperation): Boolean {
+    return withContext(Dispatchers.Main.immediate) {
+        isAiTargetValidOnMain(context, operation)
+    }
+}
+
+private fun isAiTargetValidOnMain(context: Context, operation: AiOperation): Boolean {
+    val editorInstance by context.editorInstance()
+    val currentConnection = FlorisImeService.currentInputConnection()
+    return !operation.isCanceled &&
+        editorInstance.activeInfo == operation.editorInfo &&
+        currentConnection === operation.inputConnection &&
+        currentConnection.getSelectedText(0)?.toString() == operation.originalText
+}
+
+private suspend fun cancelAiOperation(context: Context, operation: AiOperation) {
+    if (!operation.cancel()) return
+    showAiToast(context, "AI request canceled because the text field or selection changed.")
 }
 
 private class AiRequestException(val statusCode: Int? = null) : Exception()
@@ -330,6 +448,10 @@ private suspend fun showAiRequestError(context: Context, error: Exception) {
         error is AiRequestException && error.statusCode != null -> "AI request failed (HTTP ${error.statusCode}). Try again."
         else -> "AI request failed. Check the model and provider settings."
     }
+    showAiToast(context, message)
+}
+
+private suspend fun showAiToast(context: Context, message: String) {
     withContext(Dispatchers.Main.immediate) {
         lastAiToastReference.get()?.cancel()
         lastAiToastReference = WeakReference(context.showLongToast(message))

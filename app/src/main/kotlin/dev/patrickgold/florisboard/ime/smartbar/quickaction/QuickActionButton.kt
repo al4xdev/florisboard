@@ -16,11 +16,14 @@
 
 package dev.patrickgold.florisboard.ime.smartbar.quickaction
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -34,6 +37,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -42,7 +46,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.unit.dp
 import dev.patrickgold.compose.tooltip.PlainTooltip
 import dev.patrickgold.florisboard.R
 import dev.patrickgold.florisboard.ime.input.LocalInputFeedbackController
@@ -74,13 +80,24 @@ fun QuickActionButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
+    val isAiAction = action is FixGrammar || action is CustomAiPrompt
     val isRunning = when (action) {
-        is FixGrammar -> AiActionState.isFixGrammarRunning
-        is CustomAiPrompt -> AiActionState.isCustomPromptRunning
+        is FixGrammar -> AiActionState.runningAction == RunningAiAction.FIX_GRAMMAR
+        is CustomAiPrompt -> AiActionState.runningAction == RunningAiAction.CUSTOM_PROMPT
         else -> false
     }
+    val completionId = when (action) {
+        is FixGrammar -> AiActionState.completion
+            ?.takeIf { it.action == RunningAiAction.FIX_GRAMMAR }
+            ?.id
+        is CustomAiPrompt -> AiActionState.completion
+            ?.takeIf { it.action == RunningAiAction.CUSTOM_PROMPT }
+            ?.id
+        else -> null
+    }
 
-    val isEnabled = (type == QuickActionBarType.EDITOR_TILE || evaluator.evaluateEnabled(action.keyData())) && !isRunning
+    val isEnabled = (type == QuickActionBarType.EDITOR_TILE || evaluator.evaluateEnabled(action.keyData())) &&
+        !(isAiAction && AiActionState.runningAction != null)
     val elementName = when (type) {
         QuickActionBarType.INTERACTIVE_BUTTON -> FlorisImeUi.SmartbarActionKey
         QuickActionBarType.INTERACTIVE_TILE -> FlorisImeUi.SmartbarActionTile
@@ -167,20 +184,7 @@ fun QuickActionButton(
                     }
 
                     is FixGrammar -> {
-                        val iconModifier = if (isRunning) {
-                            val infiniteTransition = rememberInfiniteTransition()
-                            val rotation by infiniteTransition.animateFloat(
-                                initialValue = 0f,
-                                targetValue = 360f,
-                                animationSpec = infiniteRepeatable(
-                                    animation = tween(1000, easing = LinearEasing),
-                                    repeatMode = RepeatMode.Restart,
-                                )
-                            )
-                            Modifier.graphicsLayer { rotationZ = rotation }
-                        } else {
-                            Modifier
-                        }
+                        val iconModifier = aiIconAnimationModifier(isRunning, completionId)
                         SnyggBox(
                             elementName = "$elementName-icon",
                             attributes = attributes,
@@ -194,20 +198,7 @@ fun QuickActionButton(
                     }
 
                     is CustomAiPrompt -> {
-                        val iconModifier = if (isRunning) {
-                            val infiniteTransition = rememberInfiniteTransition()
-                            val rotation by infiniteTransition.animateFloat(
-                                initialValue = 0f,
-                                targetValue = 360f,
-                                animationSpec = infiniteRepeatable(
-                                    animation = tween(1000, easing = LinearEasing),
-                                    repeatMode = RepeatMode.Restart,
-                                )
-                            )
-                            Modifier.graphicsLayer { rotationZ = rotation }
-                        } else {
-                            Modifier
-                        }
+                        val iconModifier = aiIconAnimationModifier(isRunning, completionId)
                         SnyggBox(
                             elementName = "$elementName-icon",
                             attributes = attributes,
@@ -231,5 +222,51 @@ fun QuickActionButton(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun aiIconAnimationModifier(
+    isRunning: Boolean,
+    completionId: Long?,
+): Modifier {
+    val completionAnimation = remember { Animatable(0f) }
+    val riseDistance = with(LocalDensity.current) { 7.dp.toPx() }
+    val rotation = if (isRunning) {
+        val infiniteTransition = rememberInfiniteTransition()
+        val value by infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+        )
+        value
+    } else {
+        0f
+    }
+
+    LaunchedEffect(completionId) {
+        if (completionId != null) {
+            completionAnimation.snapTo(0f)
+            completionAnimation.animateTo(1f, tween(140))
+            completionAnimation.animateTo(
+                0f,
+                spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium,
+                ),
+            )
+            AiActionState.consumeCompletion(completionId)
+        }
+    }
+
+    return Modifier.graphicsLayer {
+        rotationZ = rotation
+        translationY = -riseDistance * completionAnimation.value
+        scaleX = 1f + completionAnimation.value * 0.12f
+        scaleY = 1f + completionAnimation.value * 0.12f
+        alpha = 1f - completionAnimation.value * 0.15f
     }
 }
