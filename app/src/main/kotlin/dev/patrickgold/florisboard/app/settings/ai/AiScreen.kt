@@ -187,9 +187,9 @@ fun AiScreen() = FlorisScreen {
                 onDismiss = { showProviderDialog = false },
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Provider slug (e.g. baseten/fp8, deepseek, deepinfra). The request will use only this provider, with no fallback.")
+                    Text("Provider slug (e.g. deepinfra/fp4, baseten/fp8, deepseek). The request will use only this provider, with no fallback.")
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Grammar Fix uses forced tool calling. The selected model and provider must support tools and tool_choice. BaseTen FP8 is the tested default.")
+                    Text("Grammar Fix uses forced tool calling. The selected model and provider must support tools and tool_choice. DeepInfra FP4 is the default.")
                     Spacer(modifier = Modifier.height(8.dp))
                     JetPrefTextField(
                         value = tempProvider,

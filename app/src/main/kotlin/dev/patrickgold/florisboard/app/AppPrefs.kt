@@ -87,7 +87,7 @@ abstract class FlorisPreferenceModel : PreferenceModel() {
         )
         val openRouterProvider = string(
             key = "ai__open_router_provider",
-            default = "baseten/fp8",
+            default = "deepinfra/fp4",
         )
         val customPrompt = string(
             key = "ai__custom_prompt",

@@ -2,6 +2,7 @@ package dev.patrickgold.florisboard.ime.smartbar.quickaction
 
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import dev.patrickgold.florisboard.FlorisImeService
 import dev.patrickgold.florisboard.app.FlorisPreferenceStore
 import dev.patrickgold.florisboard.subtypeManager
@@ -20,11 +21,15 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import org.florisboard.lib.android.showLongToast
 import java.io.OutputStreamWriter
+import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
 import java.net.URL
 
 private val aiScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+private var lastAiToastReference = WeakReference<Toast>(null)
 private const val OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 @Serializable
@@ -69,6 +74,7 @@ object FixGrammar : QuickAction() {
                 )
             } catch (e: Exception) {
                 Log.w("FixGrammarAction", "request failed", e)
+                showAiRequestError(context, e)
             } finally {
                 AiActionState.isFixGrammarRunning = false
             }
@@ -139,6 +145,7 @@ object CustomAiPrompt : QuickAction() {
                 processAndCommitText(textToProcess, systemPrompt, apiKey, model, provider)
             } catch (e: Exception) {
                 Log.w("CustomAiPromptAction", "request failed", e)
+                showAiRequestError(context, e)
             } finally {
                 AiActionState.isCustomPromptRunning = false
             }
@@ -165,23 +172,22 @@ private suspend fun processAndCommitText(
         provider,
         useStructuredGrammarOutput,
     )
-    var finalText = rawResult?.trimEnd()
+    var finalText = rawResult.trimEnd()
 
-    if (!finalText.isNullOrBlank()) {
-        if (hadPeriodAtEnd) {
-            if (!finalText.endsWith(".")) {
-                finalText = "$finalText."
-            }
-        } else {
-            finalText = finalText.trimEnd('.').trimEnd()
+    if (finalText.isBlank()) throw AiRequestException()
+    if (hadPeriodAtEnd) {
+        if (!finalText.endsWith(".")) {
+            finalText = "$finalText."
         }
+    } else {
+        finalText = finalText.trimEnd('.').trimEnd()
+    }
 
-        withContext(Dispatchers.Main) {
-            val ic2 = FlorisImeService.currentInputConnection() ?: return@withContext
-            ic2.beginBatchEdit()
-            ic2.commitText(finalText, 1)
-            ic2.endBatchEdit()
-        }
+    withContext(Dispatchers.Main) {
+        val ic2 = FlorisImeService.currentInputConnection() ?: return@withContext
+        ic2.beginBatchEdit()
+        ic2.commitText(finalText, 1)
+        ic2.endBatchEdit()
     }
 }
 
@@ -192,7 +198,7 @@ private fun executeAiCompletion(
     model: String,
     provider: String,
     useStructuredGrammarOutput: Boolean,
-): String? {
+): String {
     val url = URL(OPENROUTER_URL)
     val conn = url.openConnection() as HttpURLConnection
     conn.requestMethod = "POST"
@@ -274,7 +280,8 @@ private fun executeAiCompletion(
 
     try {
         OutputStreamWriter(conn.outputStream).use { it.write(body.toString()) }
-        if (conn.responseCode != 200) return null
+        val responseCode = conn.responseCode
+        if (responseCode != HttpURLConnection.HTTP_OK) throw AiRequestException(responseCode)
         val response = conn.inputStream.bufferedReader().readText()
         val parsed = Json.parseToJsonElement(response).jsonObject
         val message = parsed["choices"]
@@ -283,7 +290,7 @@ private fun executeAiCompletion(
             ?.jsonObject
             ?.get("message")
             ?.jsonObject
-            ?: return null
+            ?: throw AiRequestException()
         return if (useStructuredGrammarOutput) {
             val arguments = message["tool_calls"]
                 ?.jsonArray
@@ -294,18 +301,38 @@ private fun executeAiCompletion(
                 ?.get("arguments")
                 ?.jsonPrimitive
                 ?.content
-                ?: return null
+                ?: throw AiRequestException()
             Json.parseToJsonElement(arguments)
                 .jsonObject["corrected_text"]
                 ?.jsonPrimitive
                 ?.content
+                ?: throw AiRequestException()
         } else {
             message["content"]
                 ?.jsonPrimitive
                 ?.content
+                ?: throw AiRequestException()
         }
     } finally {
         conn.disconnect()
+    }
+}
+
+private class AiRequestException(val statusCode: Int? = null) : Exception()
+
+private suspend fun showAiRequestError(context: Context, error: Exception) {
+    val message = when {
+        error is SocketTimeoutException -> "AI request timed out. Try again."
+        error is AiRequestException && error.statusCode == 401 -> "AI request failed (HTTP 401). Check your API key."
+        error is AiRequestException && error.statusCode == 402 -> "AI request failed (HTTP 402). Check your OpenRouter balance."
+        error is AiRequestException && error.statusCode == 404 -> "AI request failed (HTTP 404). Check the model and provider."
+        error is AiRequestException && error.statusCode == 429 -> "AI request failed (HTTP 429). Try again shortly."
+        error is AiRequestException && error.statusCode != null -> "AI request failed (HTTP ${error.statusCode}). Try again."
+        else -> "AI request failed. Check the model and provider settings."
+    }
+    withContext(Dispatchers.Main.immediate) {
+        lastAiToastReference.get()?.cancel()
+        lastAiToastReference = WeakReference(context.showLongToast(message))
     }
 }
 

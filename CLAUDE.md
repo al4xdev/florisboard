@@ -20,7 +20,7 @@ The AI settings screen stores:
 - Custom prompt
 
 The default model is `deepseek/deepseek-v4-flash-0731`. The default provider is
-`baseten/fp8`. Users can clear the provider field to allow automatic OpenRouter
+`deepinfra/fp4`. Users can clear the provider field to allow automatic OpenRouter
 routing or enter another provider that supports the selected request parameters.
 
 Grammar Fix uses a forced `return_grammar_correction` tool call with a

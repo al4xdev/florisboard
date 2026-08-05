@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 URL = "https://openrouter.ai/api/v1/chat/completions"
 DEFAULT_MODEL = "deepseek/deepseek-v4-flash-0731"
-DEFAULT_PROVIDER = "baseten/fp8"
+DEFAULT_PROVIDER = "deepinfra/fp4"
 API_KEY_ENV = "OPENROUTER_API_KEY"
 LEVELS = ["LOW", "MED", "HIGH", "XHIGH", "MAX"]
 
