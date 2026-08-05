@@ -5,6 +5,9 @@
     <!-- Permission needed to vibrate if the user has key press vibration enabled -->
     <uses-permission android:name="android.permission.VIBRATE"/>
 
+    <!-- Permission needed for the hardcoded grammar-fix toolbar action (POSTs to localhost:8080) -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <!-- Permission needed to create notifications on devices running Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
@@ -28,6 +31,7 @@
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/floris_app_icon"
         android:label="@string/floris_app_name"
+        android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="true"
         android:roundIcon="@mipmap/floris_app_icon_round"
         android:supportsRtl="true"

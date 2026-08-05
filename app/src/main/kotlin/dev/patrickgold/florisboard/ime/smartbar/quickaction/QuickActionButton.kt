@@ -16,6 +16,12 @@
 
 package dev.patrickgold.florisboard.ime.smartbar.quickaction
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -32,9 +38,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.vectorResource
 import dev.patrickgold.compose.tooltip.PlainTooltip
+import dev.patrickgold.florisboard.R
 import dev.patrickgold.florisboard.ime.input.LocalInputFeedbackController
 import dev.patrickgold.florisboard.ime.keyboard.ComputingEvaluator
 import dev.patrickgold.florisboard.ime.keyboard.computeImageVector
@@ -63,7 +73,14 @@ fun QuickActionButton(
     val inputFeedbackController = LocalInputFeedbackController.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val isEnabled = type == QuickActionBarType.EDITOR_TILE || evaluator.evaluateEnabled(action.keyData())
+
+    val isRunning = when (action) {
+        is FixGrammar -> AiActionState.isFixGrammarRunning
+        is CustomAiPrompt -> AiActionState.isCustomPromptRunning
+        else -> false
+    }
+
+    val isEnabled = (type == QuickActionBarType.EDITOR_TILE || evaluator.evaluateEnabled(action.keyData())) && !isRunning
     val elementName = when (type) {
         QuickActionBarType.INTERACTIVE_BUTTON -> FlorisImeUi.SmartbarActionKey
         QuickActionBarType.INTERACTIVE_TILE -> FlorisImeUi.SmartbarActionTile
@@ -76,8 +93,6 @@ fun QuickActionButton(
         else -> null
     }
 
-    // Need to manually cancel an action if this composable suddenly leaves the composition to prevent the key from
-    // being stuck in the pressed state
     DisposableEffect(action, isEnabled) {
         onDispose {
             if (action is QuickAction.InsertKey) {
@@ -119,7 +134,6 @@ fun QuickActionButton(
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // Render foreground
                 when (action) {
                     is QuickAction.InsertKey -> {
                         val (imageVector, label) = remember(action, evaluator) {
@@ -151,9 +165,62 @@ fun QuickActionButton(
                             text = action.data.firstOrNull().toString().ifBlank { "?" },
                         )
                     }
+
+                    is FixGrammar -> {
+                        val iconModifier = if (isRunning) {
+                            val infiniteTransition = rememberInfiniteTransition()
+                            val rotation by infiniteTransition.animateFloat(
+                                initialValue = 0f,
+                                targetValue = 360f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(1000, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Restart,
+                                )
+                            )
+                            Modifier.graphicsLayer { rotationZ = rotation }
+                        } else {
+                            Modifier
+                        }
+                        SnyggBox(
+                            elementName = "$elementName-icon",
+                            attributes = attributes,
+                            selector = selector,
+                        ) {
+                            SnyggIcon(
+                                imageVector = ImageVector.vectorResource(id = R.drawable.ic_spellcheck),
+                                modifier = iconModifier,
+                            )
+                        }
+                    }
+
+                    is CustomAiPrompt -> {
+                        val iconModifier = if (isRunning) {
+                            val infiniteTransition = rememberInfiniteTransition()
+                            val rotation by infiniteTransition.animateFloat(
+                                initialValue = 0f,
+                                targetValue = 360f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(1000, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Restart,
+                                )
+                            )
+                            Modifier.graphicsLayer { rotationZ = rotation }
+                        } else {
+                            Modifier
+                        }
+                        SnyggBox(
+                            elementName = "$elementName-icon",
+                            attributes = attributes,
+                            selector = selector,
+                        ) {
+                            SnyggIcon(
+                                imageVector = ImageVector.vectorResource(id = R.drawable.ic_auto_awesome),
+                                modifier = iconModifier,
+                            )
+                        }
+                    }
                 }
 
-                // Render additional info if this is a tile
                 if (type != QuickActionBarType.INTERACTIVE_BUTTON) {
                     SnyggText(
                         elementName = "$elementName-text",
