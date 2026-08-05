@@ -29,7 +29,8 @@ selected. The selected provider must support tools and `tool_choice`. Custom AI
 Prompt continues to read normal message content.
 
 The grammar prompts are defined independently for Low, Med, High, XHigh, and Max
-in `AiLevel.kt`. The keyboard locale is supplied as a hint. Prompts treat the
+in `AiLevel.kt`. Max performs an aggressive professional rewrite and removes
+redundancy while preserving unique information. The keyboard locale is supplied as a hint. Prompts treat the
 input as text to edit, never as a request to answer or execute, and preserve
 unknown names, commands, paths, URLs, identifiers, quoted strings, and technical
 terms.
