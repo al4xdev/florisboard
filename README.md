@@ -4,12 +4,14 @@ src=".github/repo_icon.png" alt="App icon">
 # FlorisBoard (AI Enhanced Fork) [![Crowdin](https://badges.crowdin.net/florisboard/localized.svg)](https://crowdin.florisboard.org) [![Matrix badge](https://img.shields.io/badge/chat-%23florisboard%3amatrix.org-blue)](https://matrix.to/#/#florisboard:matrix.org) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md) [![FlorisBoard CI](https://github.com/florisboard/florisboard/actions/workflows/android.yml/badge.svg?event=push)](https://github.com/florisboard/florisboard/actions/workflows/android.yml)
 
 > [!IMPORTANT]
-> **This is a custom fork of FlorisBoard enhanced with integrated AI features powered by OpenRouter!**
-> 
+> **This is a custom fork of FlorisBoard enhanced with integrated AI features.**
+>
 > Key features introduced in this fork:
-> - 🤖 **AI Features Menu**: Configure OpenRouter API Key, Model, and Custom System Prompts.
+> - 🔀 **Backend Selector**: Choose OpenRouter or the native DeepSeek API. The whole AI settings screen swaps to match, and each backend keeps its own API key.
+> - 🤖 **AI Features Menu**: Configure the API key, model, provider routing, and custom system prompts.
 > - 🔤 **FixGrammar & ✨ AI Prompt Quick Actions**: Single-tap toolbar actions to fix grammar or run custom prompts directly in any app.
-> - 🌡️ **AI Intervention Slider**: Custom Compose slider with 5 discrete levels (Low, Med, High, XHigh, Max) and dynamic temperature colors (Green ➔ Blue ➔ Amber ➔ Orange ➔ Red).
+> - 🎚️ **AI Intervention Slider**: Custom Compose slider with 5 discrete levels (Low, Med, High, XHigh, Max) and per-level colors (Green ➔ Blue ➔ Amber ➔ Orange ➔ Pink).
+> - 🌍 **Automatic Language Hints**: The active keyboard locale is passed to the model, with extra guidance for English and Brazilian Portuguese.
 > - 🚀 **Smart Setup Redirection**: Automatically guides you to the setup screen if no API key is configured.
 > - 🐻 **Chewbacca Easter Egg**: Default custom prompt converts any text to authentic Wookiee roars!
 
@@ -18,11 +20,50 @@ src=".github/repo_icon.png" alt="App icon">
   <img src="docs/assets/demo_part2.gif" width="48%" alt="AI Toolbar Quick Actions in Action" />
 </p>
 
+## ✍️ How it works
+
+Instead of relying on traditional word-by-word autocorrection, this fork uses a language model to
+understand the complete sentence, its tone, and its context. You can type quickly, leave mistakes in
+the draft, use technical or niche vocabulary, and refine everything with a single toolbar action —
+without leaving the app you are using.
+
+Unknown names, commands, paths, URLs, identifiers, and quoted strings are preserved character for
+character, so jargon and code survive the rewrite intact. The model is always instructed to *edit*
+the text, never to answer or execute what it finds inside it.
+
+The AI intervention level controls how much the original text may change:
+
+| Level | What it does |
+| --- | --- |
+| **Low** · Minimal | Fixes obvious spelling and diacritic mistakes while preserving your wording. |
+| **Med** · Standard | Corrects grammar, capitalization, and punctuation, keeping your structure. |
+| **High** · Expressive | Improves fluency and rephrases gently, keeping your tone and slang. |
+| **XHigh** · Full Polish | Aggressive professional rewrite that strips redundancy and filler. |
+| **Max** · Rebuilt | Rebuilds the text freely, reordering and regrouping sentences for the clearest result. |
+
+Every level keeps the number of questions intact, so a question stays a question instead of being
+answered. `Max` may restructure without limit, but it must not drop a unique fact or invent one.
+
+This is especially useful for messages, social posts, technical discussions, gaming communities, and
+other situations where conventional autocorrect often fails to understand vocabulary or intent.
+
+> [!WARNING]
+> **Privacy notice:** AI actions send the selected text to the configured backend (OpenRouter or the
+> DeepSeek API) and the selected model for processing. Ordinary typing is not transmitted unless an
+> AI action is explicitly triggered. Review the implementation and your selected provider's privacy
+> policy before entering sensitive information.
+
 ## 📊 AI Level Benchmark
 
 Benchmark executed using the exact payload as the FlorisBoard app (`reasoning: { effort: "none" }`). The keyboard's active language is automatically passed as a system prompt hint.
 
 > Model: `deepseek/deepseek-v4-flash` via OpenRouter · Temperature: 0 · Reasoning: `none` · Parallel latency: ~200ms/req
+
+> [!NOTE]
+> **These tables predate the prompt-ladder shift and have not been regenerated.** The outputs are
+> real, but the column headers refer to the old prompt set. Current mapping:
+> `Low` and `Med` are unchanged; `High (Smooth)` was retired; `XHigh (Expressive)` is now **High**;
+> `Max (Full Polish)` is now **XHigh**. The current free-rewrite **Max** is not represented below.
 
 <details open>
 <summary><b>🇺🇸 English Benchmark (100% Complete — 6/6 sentences)</b></summary>
