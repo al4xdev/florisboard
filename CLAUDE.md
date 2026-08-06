@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This fork adds two OpenRouter-powered quick actions to FlorisBoard:
+This fork adds two AI-powered quick actions to FlorisBoard:
 
 - Grammar Fix edits the selected text, or the full field when nothing is selected.
 - Custom AI Prompt applies a user-configured transformation.
@@ -11,22 +11,70 @@ The fork is personal and is not intended for upstream contribution.
 
 ## AI configuration
 
-The AI settings screen stores:
+### Backend selector
 
-- OpenRouter API key
-- Model slug
-- Provider slug
-- Grammar intervention level
-- Custom prompt
+The top of the AI settings screen selects the backend, and the whole settings
+block below it swaps. Two backends exist, defined in `AiBackend.kt`:
 
-The default model is `deepseek/deepseek-v4-flash-0731`. The default provider is
-`deepinfra/fp4`. Users can clear the provider field to allow automatic OpenRouter
-routing or enter another provider that supports the selected request parameters.
+- `OPEN_ROUTER` (default) talks to `https://openrouter.ai/api/v1/chat/completions`.
+- `DEEPSEEK` talks to `https://api.deepseek.com/chat/completions`.
+
+The selector uses an inline `listPrefEntries` block with hardcoded Kotlin
+strings. This fork deliberately avoids `enumDisplayEntriesOf` and `strings.xml`
+for AI-facing copy.
+
+### Preference namespaces
+
+API keys are stored per backend on purpose: an OpenRouter key and a DeepSeek key
+are not interchangeable, so switching backends never sends the wrong credential.
+
+| Key | Purpose |
+| --- | --- |
+| `ai__backend` | Active backend |
+| `ai__openrouter__api_key` | OpenRouter key |
+| `ai__openrouter__model` | Default `deepseek/deepseek-v4-flash-0731` |
+| `ai__openrouter__provider` | Default `deepinfra/fp4` |
+| `ai__deepseek__api_key` | DeepSeek key |
+| `ai__deepseek__model` | Default `deepseek-v4-flash` |
+| `ai__custom_prompt` | Shared across backends |
+| `ai__level` | Shared across backends |
+
+`AppPrefs.migrate` moves the old flat keys `ai__api_key`,
+`ai__open_router_model`, and `ai__open_router_provider` into the OpenRouter
+namespace, because existing users were on OpenRouter.
+
+The default custom prompt lives once in `AiDefaults.CUSTOM_PROMPT`.
+
+### Request contracts
 
 Grammar Fix uses a forced `return_grammar_correction` tool call with a
-`corrected_text` string. OpenRouter fallback is disabled when a provider is
-selected. The selected provider must support tools and `tool_choice`. Custom AI
-Prompt continues to read normal message content.
+`corrected_text` string on both backends. Custom AI Prompt reads normal message
+content on both backends. Both backends share the executor, cancellation
+plumbing, and response parsing in
+`ime/smartbar/quickaction/ai/AiClient.kt`; only the endpoint URL and the request
+body differ.
+
+OpenRouter sends `reasoning: {effort: "none"}` plus a `provider` block. Fallback
+is disabled when a provider is selected, and `require_parameters` is set for the
+structured path. Users can clear the provider field to allow automatic OpenRouter
+routing or enter another provider that supports the selected request parameters.
+The selected provider must support tools and `tool_choice`.
+
+The native DeepSeek API silently ignores `provider` and `reasoning`, and ignoring
+`reasoning` leaves thinking enabled. The DeepSeek adapter therefore sends
+`thinking: {"type": "disabled"}` and omits `provider` and `reasoning` entirely.
+Valid model slugs are exactly `deepseek-v4-flash` and `deepseek-v4-pro`.
+
+The response envelope is identical on both backends
+(`choices[0].message.tool_calls[0].function.arguments` for the structured path,
+`choices[0].message.content` for the plain path).
+
+### Help screen
+
+There is a single route `settings/ai/help`. `AiHelpScreen` reads `ai__backend`
+and renders either the OpenRouter or the DeepSeek body, with the title following
+the backend. Both quick actions deep-link to it whenever the active backend's API
+key is blank.
 
 The grammar prompts are defined independently for Low, Med, High, XHigh, and Max
 in `AiLevel.kt`. Max performs an aggressive professional rewrite and removes
