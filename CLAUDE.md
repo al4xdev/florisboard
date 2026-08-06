@@ -158,10 +158,22 @@ docker run --rm \
   -v /home/alex/git/my/florisboard:/workspace \
   -v /tmp/florisboard-gradle-cache:/root/.gradle \
   florisboard-android-build:latest \
-  bash -lc "git config --global --add safe.directory /workspace && yes | sdkmanager --install 'cmake;4.1.2' >/dev/null && cd /workspace && chmod +x gradlew && ./gradlew assembleDebug --no-daemon"
+  bash -lc "git config --global --add safe.directory /workspace && yes | sdkmanager --install 'cmake;4.1.2' >/dev/null && cd /workspace && chmod +x gradlew && ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs='-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+UseParallelGC'"
 ```
 
+`-XX:+UseParallelGC` is required. Without it the Gradle daemon intermittently dies
+with `SIGSEGV` inside `G1ParScanThreadState::trim_queue_to_threshold`, reported as
+"Gradle build daemon disappeared unexpectedly" and leaving an `hs_err_pid*.log` in
+the repo root. It is a G1 collector crash, not a project error, and it is not
+fixed by raising the heap.
+
+Never pipe the build into `tail` or `head`: the pipeline reports the exit status
+of the last command, so a failed build looks like it passed. Redirect to a log
+file and check `$?`.
+
 The APK is generated at `app/build/outputs/apk/debug/app-debug.apk`. Build after
-the final commit because the debug version embeds the Git commit hash.
+the final commit because the debug version embeds the Git commit hash. Verify with
+`aapt2 dump badging <apk> | head -1` — the `versionName` must end in the short
+hash of `HEAD`.
 
 The current project version is `0.6.0-alpha02`.
