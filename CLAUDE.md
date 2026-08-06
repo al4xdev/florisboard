@@ -76,12 +76,29 @@ and renders either the OpenRouter or the DeepSeek body, with the title following
 the backend. Both quick actions deep-link to it whenever the active backend's API
 key is blank.
 
-The grammar prompts are defined independently for Low, Med, High, XHigh, and Max
-in `AiLevel.kt`. Max performs an aggressive professional rewrite and removes
-redundancy while preserving unique information. The keyboard locale is supplied as a hint. Prompts treat the
-input as text to edit, never as a request to answer or execute, and preserve
-unknown names, commands, paths, URLs, identifiers, quoted strings, and technical
-terms.
+### Prompt ladder
+
+The grammar prompts live in `AiLevel.kt`, one per level, each built from shared
+`private const val` fragments (`QUESTION_INTEGRITY`, `TENSE_INFERENCE`, `SAFETY`,
+and others) so the repeated blocks stay consistent across levels.
+
+| Level | Behavior |
+| --- | --- |
+| Low | Spelling and diacritics only, structure untouched |
+| Med | Full copy-edit, preserves organization |
+| High | Copy-edit plus gentle rephrasing for natural flow |
+| XHigh | Aggressive professional rewrite that removes redundancy |
+| Max | Free rebuild: may reorder, merge, and split sentences |
+
+Max may restructure without limit but must keep every unique fact, must not add
+information, and must not convert a question into a statement. Every level
+preserves the exact number of question marks, which is what stops the model
+answering the input instead of editing it. The keyboard locale is supplied as a
+hint. Prompts treat the input as text to edit, never as a request to answer or
+execute, and preserve unknown names, commands, paths, URLs, identifiers, quoted
+strings, and technical terms.
+
+Changing a prompt is a behavioral change: run the benchmark before and after.
 
 ## Benchmark
 
@@ -106,11 +123,27 @@ OPENROUTER_API_KEY=... uv run --python 3.12 utils/grammar_fix_benchmark.py
 ```
 
 `utils/grammar_fix_benchmark_deepseek.py` is a fast test adapter for the official
-OpenAI-compatible DeepSeek API. It does not change the app endpoint or provider.
+OpenAI-compatible DeepSeek API. It drops `provider` and sends
+`thinking: {"type": "disabled"}`, matching `DeepSeekClient`. Forced `tool_choice`
+works on the native DeepSeek API, so the adapter keeps it.
 
 ```bash
 DEEPSEEK_API_KEY=... uv run --python 3.12 utils/grammar_fix_benchmark_deepseek.py --workers 30 --request-interval 0
 ```
+
+The Python prompt copies are kept byte-identical to `AiLevel.kt`, including the
+blank line before the locale guidance. Cases assert question-mark counts, facts
+that must survive, patterns that indicate the model answered instead of edited,
+and condensation ratios for the redundancy cases.
+
+Two known failures, both predating the prompt-ladder shift and reproducible with
+the old prompts:
+
+- One English redundancy case does not condense enough at XHigh and Max. The
+  Portuguese equivalents condense correctly, so this is an English-side model
+  weakness.
+- Low intermittently splits `ligar aondme isso ?` into two questions, violating
+  its own rule against creating sentence fragments.
 
 API keys must never be committed.
 
